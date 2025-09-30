@@ -39,7 +39,7 @@ def train_bpe(input_path: str, PAT: str, vocab_size: int, special_tokens: list[s
     # extract pyte pairs for all words in the document
     num_lines = len(token_stream)
     print(" num lines: ", num_lines)
-    pairs_stat, token_stream = gather_pair_stat(token_stream, PAT, vocab, num_lines)
+    pairs_stat, token_stream = gather_pair_stat(token_stream, pairs_stat=dict(), vocab=vocab, num_lines=num_lines)
 
     # update vocabulary
     while True:
@@ -55,7 +55,7 @@ def train_bpe(input_path: str, PAT: str, vocab_size: int, special_tokens: list[s
                 print(freq_pair, "##-->", pairs_stat[freq_pair], "idx:", idx)
             vocab[freq_pair] = idx
             idx += 1
-            pairs_stat, token_stream = gather_pair_stat(token_stream, PAT, vocab, num_lines)
+            pairs_stat, token_stream = gather_pair_stat(token_stream, pairs_stat, vocab, num_lines, update_pair_stat=True, log=True)
             
 
 
@@ -70,7 +70,7 @@ def train_bpe(input_path: str, PAT: str, vocab_size: int, special_tokens: list[s
     return vocab, pairs_stat, token_stream
 
 # encode `pairs` according to `vocab``
-def encode_pairs(pairs, vocab, token_stream, log=False):
+def encode_pairs(pairs, vocab, pairs_stat, update_pair_stat=False, log=False):
     
     new_pairs = pairs.copy()
     some_change = True
@@ -85,42 +85,48 @@ def encode_pairs(pairs, vocab, token_stream, log=False):
                 #     break
                 y = new_pairs[idx+1]
                 if (x, y) in vocab:
-                    if (log is True):
-                        print("replaced: (", x,",", y,") ==>", vocab[(x,y)])
-                    new_pairs[idx] = vocab[(x,y)]
-                    new_pairs.pop(idx+1)
+                    # if (log is True):
+                    #     print("replaced: (", x,",", y,") ==>", vocab[(x,y)])
 
-                    # # op1: x is in idx 0
-                    # if (x,y) in token_stream:
-                    #     token_stream[(x,y)] += 1
-                    # else:
-                    #     token_stream[(x,y)] = 1
-                    token_stream  # can I locally update the stat around the new merge?
+                    xy = vocab[(x,y)]
+                    new_pairs[idx] = xy
+                    new_pairs.pop(idx+1)
+                    # if (x,y) not in token_stream:
+                    #     token_stream[(x,y)] = 0
+                    if (update_pair_stat is True):
+                        if idx == 0 and len(new_pairs) > 1:
+                            pairs_stat[(xy,new_pairs[1])] = pairs_stat.get((xy,new_pairs[1]), 0)+ 1
+                        elif idx < (len(new_pairs)-1):
+                            pairs_stat[(new_pairs[idx-1], xy)] = pairs_stat.get((new_pairs[idx-1], xy), 0) + 1
+                            pairs_stat[(xy,new_pairs[idx+1])] = pairs_stat.get((xy,new_pairs[idx+1]), 0) + 1
+
                     idx +=1
                     some_change = True
                 else:
                     idx +=1
             
-    return new_pairs
+    return new_pairs, pairs_stat
 
 
-def gather_pair_stat(token_stream, PAT, vocab, num_lines):
+def gather_pair_stat(token_stream, pairs_stat, vocab, num_lines, update_pair_stat=False, log=False):
     num_iter = -1
-    pairs_stat = {}
+    #pairs_stat = {}
     for index, line in tqdm(enumerate(token_stream), desc="processing file", total=num_lines):
         if num_iter ==0:
             break
         num_iter -= 1
-        pairs_enc = encode_pairs(line, vocab, token_stream)
+        pairs_enc, pairs_stat = encode_pairs(line, vocab, pairs_stat, update_pair_stat, log)
         # if len(line) != len(pairs_enc):
         #     print(line, "===>", pairs_enc)
+        
         token_stream[index] = pairs_enc
-        if (len(pairs_enc) >1):
-            for x,y in zip(pairs_enc[:-1],pairs_enc[1:]):
-                if (x,y) not in pairs_stat:
-                    pairs_stat[(x,y)] = 1
-                else:
-                    pairs_stat[(x,y)] += 1
+        if update_pair_stat is False:
+            if (len(pairs_enc) >1):
+                for x,y in zip(pairs_enc[:-1],pairs_enc[1:]):
+                    if (x,y) not in pairs_stat:
+                        pairs_stat[(x,y)] = 1
+                    else:
+                        pairs_stat[(x,y)] += 1
     return pairs_stat, token_stream
 
 
