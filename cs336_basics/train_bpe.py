@@ -1,170 +1,112 @@
 import regex as re
 from tqdm import tqdm
 
-def train_bpe(input_path: str, PAT: str, vocab_size: int, special_tokens: list[str], log=False):# -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
+def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):# -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     
-    # iterate over the file, split according to PAT, then convert to UTF-8
-    # count indices of byte-pairs in a dictionary
-    # sort, select the biggest and add to the vocabulary
-    vocab = dict() #dict((x, chr(x)) for x in range(5))
-    idx = 256 # len(vocab) + 1
-    
-    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    
-    # initial conversion to utf-8
-    token_stream = list()
-    try:
-        it = 0;
-        with open(input_path, "r", encoding="utf8") as file:
-            for line in tqdm(file,desc="processing file"):
-                #print(line)
-                if it == -1:
-                    break
-                it += 1
-                for r in re.finditer(PAT, line):
-                    res = r.group()
-                    token_stream.append(list(res.encode("utf-8")))
-                    # if log == True:
-                    #     print(res, "==>", list(res.encode("utf-8")))
-                
-        file.close()
+    # vocab init
+    vocab = {i: bytes([i]) for i in range(256)}
+    for i, token in enumerate(special_tokens):
+        vocab[256+i] = token.encode("utf-8")
 
-    except FileNotFoundError:
-        print("Error: The file 'sample.txt' was not found.")
+    # Pre-tokenization
+    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+    pre_tokens = {}
+    
+    try:
+        with open(input_path, "r", encoding="utf8") as file:
+            text = file.read()
+        
+        split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
+        parts = re.split(split_pat, text)
+
+        pre_tokens = {}  # dict[bytes, int] or dict[str, int], your choice
+        for part in parts:
+            if not part:
+                continue
+            if part in special_tokens:
+                continue
+            for pretoken in re.finditer(PAT, part):
+                token_bytes = pretoken.group(0).encode("utf-8")
+                key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
+                #key = tuple(char.encode('utf-8') for char in pretoken.group())
+                pre_tokens[key] = pre_tokens.get(key, 0) + 1
+
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
         file.close()
 
-    # extract pyte pairs for all words in the document
-    num_lines = len(token_stream)
-    print(" num lines: ", num_lines)
-    pairs_stat, token_stream = gather_pair_stat(token_stream, pairs_stat=dict(), vocab=vocab, num_lines=num_lines)
+    # bpe merge
+    merges = list()
+    while len(vocab) < vocab_size:
+        pairs_stat = dict()
+        pre_tokens, pairs_stat, vocab, merges = bpe_merge(pre_tokens, pairs_stat, vocab, merges)
 
-    # update vocabulary
-    while True:
-        if len(vocab) > vocab_size:# or len(pairs_stat) == 0:
-            break
-        # Sort by value in descending order
-        freq_pair = tuple(max(pairs_stat, key=pairs_stat.get))
-        
-        if freq_pair in vocab:
-            pairs_stat.pop(freq_pair)
-        else:
-            if (log == True):
-                print(freq_pair, "##-->", pairs_stat[freq_pair], "idx:", idx)
-            vocab[freq_pair] = idx
-            idx += 1
-            pairs_stat, token_stream = gather_pair_stat(token_stream, pairs_stat, vocab, num_lines, update_pair_stat=True, log=True)
-            
+    return vocab, merges
 
-
-
-
-
-        
-        # pairs_stat = dict(sorted(pairs_stat.items(), key=lambda item: item[1], reverse=True))
-        # print(pairs_stat[1:10])
-
-
-    return vocab, pairs_stat, token_stream
-
-# encode `pairs` according to `vocab``
-def encode_pairs(pairs, vocab, pairs_stat, update_pair_stat=False, log=False):
+def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
     
-    new_pairs = pairs.copy()
-    some_change = True
-    if (len(pairs) > 1):
-        while some_change is True:
-            idx = 0
-            some_change = False
-            while idx < (len(new_pairs)-1):
-                x = new_pairs[idx]
-                # if idx >= len(pairs)-1:
-                #     new_pairs.append(x)
-                #     break
-                y = new_pairs[idx+1]
-                if (x, y) in vocab:
-                    # if (log is True):
-                    #     print("replaced: (", x,",", y,") ==>", vocab[(x,y)])
+    
+    # compute byte-pair stat 
+    for pre_token in pre_tokens:
+        # count byte-pairs per pre-token
+        for x,y in zip(pre_token[:-1],pre_token[1:]):
+            pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
 
-                    xy = vocab[(x,y)]
-                    new_pairs[idx] = xy
-                    new_pairs.pop(idx+1)
-                    # if (x,y) not in token_stream:
-                    #     token_stream[(x,y)] = 0
-                    if (update_pair_stat is True):
-                        if idx == 0 and len(new_pairs) > 1:
-                            pairs_stat[(xy,new_pairs[1])] = pairs_stat.get((xy,new_pairs[1]), 0)+ 1
-                        elif idx < (len(new_pairs)-1):
-                            pairs_stat[(new_pairs[idx-1], xy)] = pairs_stat.get((new_pairs[idx-1], xy), 0) + 1
-                            pairs_stat[(xy,new_pairs[idx+1])] = pairs_stat.get((xy,new_pairs[idx+1]), 0) + 1
+    merge_cand = max(pairs_stat, key=lambda k: (pairs_stat[k], k))
 
-                    idx +=1
-                    some_change = True
-                else:
-                    idx +=1
-            
-    return new_pairs, pairs_stat
+    # merge update
+    merges.append(merge_cand)
 
+    # update vocab
+    merged_bp = merge_cand[0] + merge_cand[1]
+    vocab[len(vocab)] = merged_bp
 
-def gather_pair_stat(token_stream, pairs_stat, vocab, num_lines, update_pair_stat=False, log=False):
-    num_iter = -1
-    #pairs_stat = {}
-    for index, line in tqdm(enumerate(token_stream), desc="processing file", total=num_lines):
-        if num_iter ==0:
-            break
-        num_iter -= 1
-        pairs_enc, pairs_stat = encode_pairs(line, vocab, pairs_stat, update_pair_stat, log)
-        # if len(line) != len(pairs_enc):
-        #     print(line, "===>", pairs_enc)
-        
-        token_stream[index] = pairs_enc
-        if update_pair_stat is False:
-            if (len(pairs_enc) >1):
-                for x,y in zip(pairs_enc[:-1],pairs_enc[1:]):
-                    if (x,y) not in pairs_stat:
-                        pairs_stat[(x,y)] = 1
-                    else:
-                        pairs_stat[(x,y)] += 1
-    return pairs_stat, token_stream
+    # update pre_tokens + byte-pair stat
+    pre_tokens_new = {}
+    
+    for pre_token, freq in pre_tokens.items():
+        #key = pre_token
+        idx = 0
+        while idx < len(pre_token):
+            if pre_token[idx:idx+2] == merge_cand:
+                lst = list(pre_token)
+                lst[idx] = merged_bp
+                lst.pop(idx+1)
+                pre_token = tuple(lst) 
+            idx += 1
+        pre_tokens_new[pre_token] = freq
+    pre_tokens = pre_tokens_new    
+
+    return pre_tokens, pairs_stat, vocab, merges
 
 
-import os
+if __name__ == "__main__":
+    input_path="data/TinyStoriesV2-GPT4-valid.txt"
+    FIXTURES_PATH =  "tests/fixtures"
+    input_path = FIXTURES_PATH + "/corpus.en"
+    input_path = FIXTURES_PATH + "/tinystories_sample_5M.txt"
 
+    special_tokens = [("<|endoftext|>"),]
 
+    vocab, merges = train_bpe(input_path, vocab_size=1000, special_tokens=special_tokens)
 
+    # Open the file in write mode ('w') and use json.dump() to write the dictionary
+    # vocab_swapped = {
+    #     k : v for v, k in vocab.items()
+    # }
 
-current_working_directory = os.getcwd()
-print(current_working_directory)
+    # vocab_serializable = {k: v for v, k in vocab.items()}
+    # with open("./vocab.json", 'w', encoding="utf-8") as f:
+    #     json.dump(vocab_swapped, f, ensure_ascii=False, indent=4)
+    
+    # with open("./merges.txt", 'w') as f:
+    #     for x, y in merges:
+    #         f.write(f"{x.decode('utf-8')} {y.decode('utf-8')}\n")
 
-input_path="data/TinyStoriesV2-GPT4-valid.txt"
-PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-vocab, pairs, token_stream = train_bpe(input_path, PAT=PAT, vocab_size=50, special_tokens=("<|endoftext|>"), log=True)
-print("vocab size: ", len(vocab))
-for x,y in vocab.items():
-    print(x , "-->",y)
-print("===================================")
-it = 0
-with open(input_path, "r", encoding="utf8") as file:
-            for line in tqdm(file,desc="processing file"):
-                print("line:", line)
-                if it == 2:
-                    break
-                it += 1
-                for r in re.finditer(PAT, line):
-                    res = r.group()
-                    utf8_enc = list(res.encode("utf-8"))
-                    encoded = encode_pairs(utf8_enc, vocab, True)
-                    if len(utf8_enc)!=len(encoded):
-                        print(res, "==> orig:", utf8_enc, "final: ", encoded)
-                    else:
-                        print(res)
-                
-file.close()
-
-#print(token_stream)
-print(len(vocab))
+    print("vocab size: ", len(vocab))
+    for x,y in vocab.items():
+        print(x , "-->",y)
 
 
 
