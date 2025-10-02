@@ -36,23 +36,24 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):# -> 
     finally:
         file.close()
 
+        
+    # compute byte-pair stat 
+    pairs_stat = dict()
+    for pre_token in pre_tokens:
+        # count byte-pairs per pre-token
+        for x,y in zip(pre_token[:-1],pre_token[1:]):
+            pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
+
     # bpe merge
     merges = list()
     while len(vocab) < vocab_size:
-        pairs_stat = dict()
         pre_tokens, pairs_stat, vocab, merges = bpe_merge(pre_tokens, pairs_stat, vocab, merges)
 
     return vocab, merges
 
 def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
     
-    
-    # compute byte-pair stat 
-    for pre_token in pre_tokens:
-        # count byte-pairs per pre-token
-        for x,y in zip(pre_token[:-1],pre_token[1:]):
-            pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
-
+    # high-freq pair
     merge_cand = max(pairs_stat, key=lambda k: (pairs_stat[k], k))
 
     # merge update
@@ -60,7 +61,8 @@ def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
 
     # update vocab
     merged_bp = merge_cand[0] + merge_cand[1]
-    vocab[len(vocab)] = merged_bp
+    token_idx = len(vocab)
+    vocab[token_idx] = merged_bp
 
     # update pre_tokens + byte-pair stat
     pre_tokens_new = {}
@@ -70,11 +72,30 @@ def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
         idx = 0
         while idx < len(pre_token):
             if pre_token[idx:idx+2] == merge_cand:
+
+                # update stat of new token pairs
+                if pre_token[:idx]:
+                    key_l = (pre_token[idx-1], merged_bp)
+                    pairs_stat[key_l] = pairs_stat.get(key_l, 0) + freq
+                    pairs_stat[(pre_token[idx-1], pre_token[idx])] -= freq
+                
+                if pre_token[idx+2:]:
+                    key_r = (merged_bp, pre_token[idx + 2])
+                    pairs_stat[key_r] = pairs_stat.get(key_r, 0) + freq
+                    pairs_stat[(pre_token[idx+1], pre_token[idx+2])] -= freq
+                
+                pairs_stat[merge_cand] -= freq
+
+                # create merged pretoken
                 lst = list(pre_token)
                 lst[idx] = merged_bp
                 lst.pop(idx+1)
                 pre_token = tuple(lst) 
+
             idx += 1
+
+            
+
         pre_tokens_new[pre_token] = freq
     pre_tokens = pre_tokens_new    
 
