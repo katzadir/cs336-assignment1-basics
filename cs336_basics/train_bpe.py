@@ -1,7 +1,20 @@
 import regex as re
-from tqdm import tqdm
 
-def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):# -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
+
+def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]): 
+    """
+    An implementation of the BPE algorithm, training a vocabulary of a given `vocab_size`
+
+    Returns `vocab` the generated vocabulary and `merges` holding the merging stpes between pairs.
+
+    Usage:
+        - `input_path` - path for text file for training
+        - `vocab_size` - in addition to 255 byte mappings, how much the vocabolary can grow
+        - `special_tokens` -  tokens to add as is to the vocaublary, they won't be tokenized.
+
+        train_bpe(input_path: str, vocab_size: int, special_tokens: list[str])
+
+    """
     
     # vocab init
     vocab = {i: bytes([i]) for i in range(256)}
@@ -19,7 +32,7 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):# -> 
         split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
         parts = re.split(split_pat, text)
 
-        pre_tokens = {}  # dict[bytes, int] or dict[str, int], your choice
+        pre_tokens = {}  
         for part in parts:
             if not part:
                 continue
@@ -28,7 +41,6 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):# -> 
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
                 key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
-                #key = tuple(char.encode('utf-8') for char in pretoken.group())
                 pre_tokens[key] = pre_tokens.get(key, 0) + 1
 
     except Exception as e:
@@ -100,35 +112,4 @@ def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
     pre_tokens = pre_tokens_new    
 
     return pre_tokens, pairs_stat, vocab, merges
-
-
-if __name__ == "__main__":
-    input_path="data/TinyStoriesV2-GPT4-valid.txt"
-    FIXTURES_PATH =  "tests/fixtures"
-    input_path = FIXTURES_PATH + "/corpus.en"
-    input_path = FIXTURES_PATH + "/tinystories_sample_5M.txt"
-
-    special_tokens = [("<|endoftext|>"),]
-
-    vocab, merges = train_bpe(input_path, vocab_size=1000, special_tokens=special_tokens)
-
-    # Open the file in write mode ('w') and use json.dump() to write the dictionary
-    # vocab_swapped = {
-    #     k : v for v, k in vocab.items()
-    # }
-
-    # vocab_serializable = {k: v for v, k in vocab.items()}
-    # with open("./vocab.json", 'w', encoding="utf-8") as f:
-    #     json.dump(vocab_swapped, f, ensure_ascii=False, indent=4)
-    
-    # with open("./merges.txt", 'w') as f:
-    #     for x, y in merges:
-    #         f.write(f"{x.decode('utf-8')} {y.decode('utf-8')}\n")
-
-    print("vocab size: ", len(vocab))
-    for x,y in vocab.items():
-        print(x , "-->",y)
-
-
-
 
