@@ -42,7 +42,7 @@ class Tokenizer:
 
         return cls(vocab, merges, special_tokens)
     
-    def pre_tokenize(text, special_tokens):
+    def pre_tokenize(self, text, special_tokens):
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pre_tokens = ()
     
