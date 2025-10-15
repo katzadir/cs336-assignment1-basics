@@ -85,12 +85,12 @@ class Tokenizer:
                         idx += 1
                 
             # now encode using the vocabulary
-            pre_tokens[pre_token_id] = [self.inv_vocab[tok] for tok in pre_token]
+            #pre_tokens[pre_token_id] = [self.inv_vocab[tok] for tok in pre_token]
             pre_token_id += 1
 
         # special tokens
 
-        pre_tokens = [item for sublist in pre_tokens for item in sublist]
+        pre_tokens = [self.inv_vocab.get(item) for sublist in pre_tokens for item in sublist]
 
         return pre_tokens
 
@@ -127,7 +127,9 @@ if __name__ == "__main__":
 
     tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl")
     orig_str = "there can be only one."
+    orig_str = "🙃"
     print("orig: ",orig_str)
+    print("orig-encoded: ",orig_str.encode("utf-8"))
     print(type(tokenizer.encode(orig_str)))
     print(tokenizer.encode(orig_str))
     print(type(tokenizer.encode(orig_str)[0]))
