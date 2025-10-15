@@ -1,5 +1,6 @@
 
 from collections.abc import Iterable
+import pickle
 
 
 class Tokenizer:
@@ -15,13 +16,24 @@ class Tokenizer:
         self.merges = merges
         self.special_tokens = special_tokens
 
+    @classmethod
     def from_files(cls, vocab_filepath : str, merges_filepath : str, special_tokens : list[str] | None = None):
         """
         Class methos that constructs and return a Tokenizer from a serialized vocabulary
         and a list of merges (in the format created by [train_bpe.py] and (optionally) a
         list of special tokens.)
         """
-        pass
+        try:
+            with open(vocab_filepath, 'rb') as f:
+                vocab = pickle.load(f)
+            with open(merges_filepath, 'rb') as f:
+                merges = pickle.load(f)
+        except FileNotFoundError:
+            print(f"Error: The file {vocab_filepath} or {merges_filepath} (or both) was not found.")
+        except Exception as  e:
+            print(f"An error occured during deserialization: {e}")
+
+        return cls(vocab, merges, special_tokens)
 
     def encode(self, text: str) -> list[int]:
         pass
