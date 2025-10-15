@@ -7,7 +7,30 @@ import torch
 from torch import Tensor
 import pickle
 
+import sentry_sdk
 
+sentry_sdk.init(
+    dsn="https://c8c08fe2a9f830e43d979aac7efe1adf@o4510181176901632.ingest.de.sentry.io/4510181185159248",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Enable sending logs to Sentry
+    enable_logs=True,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+)
+
+from sentry_sdk import start_transaction
+
+@pytest.fixture(autouse=True)
+def sentry_profile():
+    with start_transaction(name="pytest_profile"):
+        yield
+        
 class DEFAULT:
     pass
 
