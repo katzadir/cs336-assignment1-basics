@@ -19,8 +19,9 @@ class Tokenizer:
         self.special_tokens = special_tokens
 
         # adding special_token to our vocabulary if not exists already
-        for special_token in special_tokens:
-            self.vocav[len(self.vocav)] = special_token
+        if special_tokens is not None:
+            for special_token in special_tokens:
+                self.vocav[len(self.vocav)] = special_token
 
     @classmethod
     def from_files(cls, vocab_filepath : str, merges_filepath : str, special_tokens : list[str] | None = None):
