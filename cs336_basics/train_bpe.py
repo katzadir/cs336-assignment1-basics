@@ -1,5 +1,12 @@
 import regex as re
 
+def read_in_chunks(path, chunk_size=1000*1024*1024):  # 1 Gb
+    with open(path, "r", encoding="utf8") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
 
 def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]): 
     """
@@ -26,27 +33,29 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
     pre_tokens = {}
     
     try:
-        with open(input_path, "r", encoding="utf8") as file:
-            text = file.read()
-        
-        split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
-        parts = re.split(split_pat, text)
-
-        pre_tokens = {}  
-        for part in parts:
-            if not part:
-                continue
-            if part in special_tokens:
-                continue
-            for pretoken in re.finditer(PAT, part):
-                token_bytes = pretoken.group(0).encode("utf-8")
-                key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
-                pre_tokens[key] = pre_tokens.get(key, 0) + 1
+        for text in read_in_chunks(input_path):
+        #with open(input_path, "r", encoding="utf8") as file:
+        #    text = file.read()
+       
+            split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
+            parts = re.split(split_pat, text)
+            print("parts| ", len(parts))
+            for part in parts:
+                if not part:
+                    continue
+                if part in special_tokens:
+                    continue
+                for pretoken in re.finditer(PAT, part):
+                    token_bytes = pretoken.group(0).encode("utf-8")
+                    key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
+                    pre_tokens[key] = pre_tokens.get(key, 0) + 1
+            print("pre_tokens| ", len(pre_tokens))
 
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        file.close()
+        pass
+        #file.close()
 
         
     # compute byte-pair stat 
@@ -56,6 +65,8 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
         for x,y in zip(pre_token[:-1],pre_token[1:]):
             pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
 
+    print("DEBUG:")
+    print(sorted(pairs_stat.items())[:3])
     # bpe merge
     merges = list()
     while len(vocab) < vocab_size:
@@ -66,6 +77,7 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
 def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
     
     # high-freq pair
+    print("bpe_merge| ", len(pairs_stat))
     merge_cand = max(pairs_stat, key=lambda k: (pairs_stat[k], k))
 
     # merge update
@@ -113,3 +125,22 @@ def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
 
     return pre_tokens, pairs_stat, vocab, merges
 
+
+
+if __name__ == "__main__":
+    import time
+
+    from cs336_basics.train_bpe import train_bpe
+
+    #input_path = "data/TinyStoriesV2-GPT4-train.txt"
+    input_path = "data/owt_train.txt"
+    #input_path = "tests/fixtures/corpus.en"
+    start_time = time.time()
+    vocab, merges = train_bpe(
+            input_path=input_path,
+            vocab_size=32000,
+            special_tokens=["<|endoftext|>"],
+        )
+    end_time = time.time()
+    elapsed_ms = (end_time - start_time) * 1000
+    print(f"Elapsed time: {elapsed_ms:.2f} ms")
