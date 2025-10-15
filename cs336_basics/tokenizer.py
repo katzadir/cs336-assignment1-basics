@@ -46,7 +46,7 @@ class Tokenizer:
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pre_tokens = list()
 
-        parts = re.split(" ", text)
+        parts = [text]
         if special_tokens is not None:
             split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
             parts = re.split(split_pat, text)
@@ -90,6 +90,8 @@ class Tokenizer:
 
         # special tokens
 
+        pre_tokens = [item for sublist in pre_tokens for item in sublist]
+
         return pre_tokens
 
 
@@ -111,17 +113,26 @@ class Tokenizer:
         Decode a sequance of token IDs into text.
         """
 
-        str = [self.vocav.get(id[0], '\uFFFD').decode('utf-8',"replace") for id in ids]
+        str = [self.vocav.get(id, '\uFFFD').decode('utf-8',"replace") for id in ids]
         return "".join(str)
 
 
 
 if __name__ == "__main__":
     tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl", special_tokens=["<|endoftext|>"])
-    print(tokenizer.encode("the <|endoftext|> are"))
-    print(tokenizer.decode(tokenizer.encode("the <|endoftext|> are")))
+
+    # print("the <|endoftext|> are")
+    # print(tokenizer.encode("the <|endoftext|> are"))
+    # print(tokenizer.decode(tokenizer.encode("the <|endoftext|> are")))
 
     tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl")
-    print(tokenizer.decode(tokenizer.encode("the are")))
+    orig_str = "there can be only one."
+    print("orig: ",orig_str)
+    print(type(tokenizer.encode(orig_str)))
+    print(tokenizer.encode(orig_str))
+    print(type(tokenizer.encode(orig_str)[0]))
+    print("deco: ",tokenizer.decode(tokenizer.encode(orig_str)))
 
-    print(tokenizer.decode(tokenizer.encode("")))
+    # print(tokenizer.decode(tokenizer.encode("")))
+    # print(tokenizer.decode(tokenizer.encode("a")))
+    # print(tokenizer.encode("a"))
