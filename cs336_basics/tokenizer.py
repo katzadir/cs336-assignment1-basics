@@ -95,7 +95,7 @@ class Tokenizer:
 
 
 
-    def encode_iterable(self, iterable: Iterable[int]) -> Iterable[int]:
+    def encode_iterable(self, iterable: Iterable[str]) -> Iterable[int]:
         """
         Given an iterable of strings(e.g. a Python file handle), 
         return a generator that laizily yields token IDs.
@@ -103,7 +103,8 @@ class Tokenizer:
         This is required for memoery-efficient tokenization of large files that we cannot directly load
         into memory.
         """
-        pass
+        while iter in iterable:
+            yield self.encode(iter)
 
     def decode(self, ids: list[int]) -> str:
         """
