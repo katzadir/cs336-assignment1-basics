@@ -48,8 +48,8 @@ class Tokenizer:
 
         if special_tokens is not None:
             split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
-            parts = re.split(split_pat, text)
-        print("parts| ", len(parts))
+        
+        parts = re.split(split_pat, text)
         for part in parts:
             if not part:
                 continue
