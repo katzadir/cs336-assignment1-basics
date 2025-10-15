@@ -45,9 +45,10 @@ class Tokenizer:
     def pre_tokenize(self, text, special_tokens):
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pre_tokens = ()
-    
-        split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
-        parts = re.split(split_pat, text)
+
+        if special_tokens is not None:
+            split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
+            parts = re.split(split_pat, text)
         print("parts| ", len(parts))
         for part in parts:
             if not part:
