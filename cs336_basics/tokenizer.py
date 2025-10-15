@@ -1,6 +1,6 @@
-
 from collections.abc import Iterable
 import pickle
+import regex as re
 
 
 class Tokenizer:
@@ -34,8 +34,39 @@ class Tokenizer:
             print(f"An error occured during deserialization: {e}")
 
         return cls(vocab, merges, special_tokens)
+    
+    def pre_tokenize(input_path, special_tokens):
+        PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+        pre_tokens = {}
+    
+        try:
+            with open(input_path, "r", encoding="utf8") as file:
+                text = file.read()
+        
+                split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
+                parts = re.split(split_pat, text)
+                print("parts| ", len(parts))
+                for part in parts:
+                    if not part:
+                        continue
+                    if part in special_tokens:
+                        continue
+                    for pretoken in re.finditer(PAT, part):
+                        token_bytes = pretoken.group(0).encode("utf-8")
+                        key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
+                        pre_tokens[key] = pre_tokens.get(key, 0) + 1
+                print("pre_tokens| ", len(pre_tokens))
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            pass
+        return pre_tokens
 
     def encode(self, text: str) -> list[int]:
+        # pre-tokenization
+        # apply merges
+        # special tokens
         pass
 
     def encode_iterable(self, iterable: Iterable[int]) -> Iterable[int]:
