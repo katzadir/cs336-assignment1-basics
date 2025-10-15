@@ -13,6 +13,8 @@ class Tokenizer:
         
         """
         self.vocav = vocab
+        # inverse vocabulary lookup 
+        self.inv_vocab = {v : k for k, v in vocab.items()}
         self.merges = merges
         self.special_tokens = special_tokens
 
@@ -41,7 +43,7 @@ class Tokenizer:
     
     def pre_tokenize(text, special_tokens):
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-        pre_tokens = {}
+        pre_tokens = ()
     
         split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
         parts = re.split(split_pat, text)
@@ -49,12 +51,12 @@ class Tokenizer:
         for part in parts:
             if not part:
                 continue
-            if part in special_tokens:
-                continue
+            #if part in special_tokens:
+            #    continue
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
-                key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
-                pre_tokens[key] = pre_tokens.get(key, 0) + 1
+                pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
+                pre_tokens.append(pre_token)
         print("pre_tokens| ", len(pre_tokens))
 
         return pre_tokens
@@ -71,22 +73,22 @@ class Tokenizer:
                 idx = 0
                 while idx < len(pre_token) and len(pre_token) > 1:
                     if [pre_token[idx:idx+2]] in merge:
-                        # this will fail as ew need an inverted vocab
-                        tok_id = self.vocab[merge]
-                        
-                        # create merged pretoken
-                        updated_pre_token[idx] = tok_id
+                        updated_pre_token[idx] = pre_token[idx] + pre_token[idx+1]
                         updated_pre_token.pop(idx+1)
                         pre_token = tuple(updated_pre_token) 
                     
                     idx += 1
-            pre_tokens[pre_token_id] = pre_token
+            
+            # now encode using the vocabulary
+            pre_tokens[pre_token_id] = [self.inv_vocab[tok] for tok in pre_token]
             pre_token_id += 1
 
-            
-
         # special tokens
-        pass
+
+        return pre_tokens
+
+
+
 
     def encode_iterable(self, iterable: Iterable[int]) -> Iterable[int]:
         """
