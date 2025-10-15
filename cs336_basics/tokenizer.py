@@ -60,11 +60,11 @@ class Tokenizer:
                 token_bytes = pretoken.group(0).encode("utf-8")
                 pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
                 pre_tokens.append(pre_token)
-        print("pre_tokens| ", len(pre_tokens))
 
         return pre_tokens
 
     def encode(self, text: str) -> list[int]:
+
         # pre-tokenization
         pre_tokens = self.pre_tokenize(text, self.special_tokens)
 
@@ -109,15 +109,18 @@ class Tokenizer:
         """
         Decode a sequance of token IDs into text.
         """
-        pass
+
+        str = [self.vocav.get(id[0], '\uFFFD').decode('utf-8',"replace") for id in ids]
+        return "".join(str)
 
 
 
 if __name__ == "__main__":
     tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl", special_tokens=["<|endoftext|>"])
     print(tokenizer.encode("the <|endoftext|> are"))
+    print(tokenizer.decode(tokenizer.encode("the <|endoftext|> are")))
 
     tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl")
-    print(tokenizer.encode("the are"))
+    print(tokenizer.decode(tokenizer.encode("the are")))
 
-    print(tokenizer.encode(""))
+    print(tokenizer.decode(tokenizer.encode("")))
