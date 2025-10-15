@@ -44,9 +44,9 @@ class Tokenizer:
     
     def pre_tokenize(self, text, special_tokens):
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-        pre_tokens = ()
+        pre_tokens = list()
 
-        parts = text
+        parts = re.split(" ", text)
         if special_tokens is not None:
             split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
             parts = re.split(split_pat, text)
@@ -54,8 +54,8 @@ class Tokenizer:
         for part in parts:
             if not part:
                 continue
-            #if part in special_tokens:
-            #    continue
+            if special_tokens is not None and part in special_tokens:
+                continue
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
                 pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
@@ -67,21 +67,23 @@ class Tokenizer:
     def encode(self, text: str) -> list[int]:
         # pre-tokenization
         pre_tokens = self.pre_tokenize(text, self.special_tokens)
-        
+
         # apply merges in the same order as in merges
         pre_token_id = 0
         while pre_token_id < len(pre_tokens):
+            pre_token = pre_tokens[pre_token_id]
             updated_pre_token = list(pre_token)
-            for merge in self.merges:
-                idx = 0
-                while idx < len(pre_token) and len(pre_token) > 1:
-                    if [pre_token[idx:idx+2]] in merge:
-                        updated_pre_token[idx] = pre_token[idx] + pre_token[idx+1]
-                        updated_pre_token.pop(idx+1)
-                        pre_token = tuple(updated_pre_token) 
-                    
-                    idx += 1
-            
+            if (len(pre_token) > 1):
+                for merge in self.merges:
+                    idx = 0
+                    while idx < len(pre_token) and len(pre_token) > 1:
+                        if pre_token[idx:idx+2] == merge:
+                            updated_pre_token[idx] = pre_token[idx] + pre_token[idx+1]
+                            updated_pre_token.pop(idx+1)
+                            pre_token = tuple(updated_pre_token) 
+                        
+                        idx += 1
+                
             # now encode using the vocabulary
             pre_tokens[pre_token_id] = [self.inv_vocab[tok] for tok in pre_token]
             pre_token_id += 1
@@ -108,3 +110,14 @@ class Tokenizer:
         Decode a sequance of token IDs into text.
         """
         pass
+
+
+
+if __name__ == "__main__":
+    tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl", special_tokens=["<|endoftext|>"])
+    print(tokenizer.encode("the <|endoftext|> are"))
+
+    tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl")
+    print(tokenizer.encode("the are"))
+
+    print(tokenizer.encode(""))
