@@ -16,6 +16,10 @@ class Tokenizer:
         self.merges = merges
         self.special_tokens = special_tokens
 
+        # adding special_token to our vocabulary if not exists already
+        for special_token in special_tokens:
+            self.vocav[len(self.vocav)] = special_token
+
     @classmethod
     def from_files(cls, vocab_filepath : str, merges_filepath : str, special_tokens : list[str] | None = None):
         """
@@ -35,37 +39,52 @@ class Tokenizer:
 
         return cls(vocab, merges, special_tokens)
     
-    def pre_tokenize(input_path, special_tokens):
+    def pre_tokenize(text, special_tokens):
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pre_tokens = {}
     
-        try:
-            with open(input_path, "r", encoding="utf8") as file:
-                text = file.read()
-        
-                split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
-                parts = re.split(split_pat, text)
-                print("parts| ", len(parts))
-                for part in parts:
-                    if not part:
-                        continue
-                    if part in special_tokens:
-                        continue
-                    for pretoken in re.finditer(PAT, part):
-                        token_bytes = pretoken.group(0).encode("utf-8")
-                        key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
-                        pre_tokens[key] = pre_tokens.get(key, 0) + 1
-                print("pre_tokens| ", len(pre_tokens))
+        split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
+        parts = re.split(split_pat, text)
+        print("parts| ", len(parts))
+        for part in parts:
+            if not part:
+                continue
+            if part in special_tokens:
+                continue
+            for pretoken in re.finditer(PAT, part):
+                token_bytes = pretoken.group(0).encode("utf-8")
+                key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
+                pre_tokens[key] = pre_tokens.get(key, 0) + 1
+        print("pre_tokens| ", len(pre_tokens))
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            pass
         return pre_tokens
 
     def encode(self, text: str) -> list[int]:
         # pre-tokenization
-        # apply merges
+        pre_tokens = self.pre_tokenize(text, self.special_tokens)
+        
+        # apply merges in the same order as in merges
+        pre_token_id = 0
+        while pre_token_id < len(pre_tokens):
+            updated_pre_token = list(pre_token)
+            for merge in self.merges:
+                idx = 0
+                while idx < len(pre_token) and len(pre_token) > 1:
+                    if [pre_token[idx:idx+2]] in merge:
+                        # this will fail as ew need an inverted vocab
+                        tok_id = self.vocab[merge]
+                        
+                        # create merged pretoken
+                        updated_pre_token[idx] = tok_id
+                        updated_pre_token.pop(idx+1)
+                        pre_token = tuple(updated_pre_token) 
+                    
+                    idx += 1
+            pre_tokens[pre_token_id] = pre_token
+            pre_token_id += 1
+
+            
+
         # special tokens
         pass
 
