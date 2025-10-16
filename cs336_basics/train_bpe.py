@@ -29,6 +29,7 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
         vocab[256+i] = token.encode("utf-8")
 
     # Pre-tokenization
+    print("init - pre-tokenization")
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     pre_tokens = {}
     
@@ -55,6 +56,7 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
 
         
     # compute byte-pair stat 
+    print("init - BP stat")
     pairs_stat = dict()
     for pre_token in pre_tokens:
         # count byte-pairs per pre-token
@@ -62,6 +64,7 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
             pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
 
     # bpe merge
+    print("init - merges")
     merges = list()
     while len(vocab) < vocab_size:
         pre_tokens, pairs_stat, vocab, merges = bpe_merge(pre_tokens, pairs_stat, vocab, merges)
