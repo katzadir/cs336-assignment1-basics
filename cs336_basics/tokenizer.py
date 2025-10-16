@@ -17,10 +17,12 @@ class Tokenizer:
         """
         self.vocav = vocab
         self.merges = merges
-        self.special_tokens = sorted(special_tokens,reverse=True)
+        self.special_tokens = None
+
 
         # adding special_token to our vocabulary if not exists already
         if special_tokens is not None:
+            self.special_tokens = sorted(special_tokens,reverse=True)
             for special_token in special_tokens:
                 if special_token not in self.vocav:
                     print("last token: ", self.vocav[len(self.vocav)-1])
