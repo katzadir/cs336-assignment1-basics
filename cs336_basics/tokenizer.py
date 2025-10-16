@@ -25,7 +25,7 @@ class Tokenizer:
             self.special_tokens = sorted(special_tokens,reverse=True)
             for special_token in special_tokens:
                 special_token = special_token.encode("utf-8")
-                if special_token not in self.vocav:
+                if special_token not in self.vocav.values():
                     self.vocav[len(self.vocav)] = special_token
 
         # inverse vocabulary lookup 
