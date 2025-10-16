@@ -58,7 +58,7 @@ class Tokenizer:
             if not part:
                 continue
             if special_tokens is not None and part in special_tokens:
-                pre_tokens.append(part)
+                pre_tokens.append([part])
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
                 pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
@@ -219,11 +219,12 @@ if __name__ == "__main__":
     
     VOCAB_PATH = "tests/fixtures/gpt2_vocab.json"
     MERGES_PATH = "tests/fixtures/gpt2_merges.txt"
-    tokenizer = Tokenizer.get_tokenizer()
+    #tokenizer = Tokenizer.get_tokenizer()
 
-    #tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath)
+    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath)
     #orig_str = "Hello, how are you?"
-    orig_str = "🙃"
+    orig_str = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
+    #orig_str = "🙃"
     print("orig: ",orig_str)
     #print("orig-encoded: ",orig_str.encode("utf-8"))
     #print(type(tokenizer.encode(orig_str)))
