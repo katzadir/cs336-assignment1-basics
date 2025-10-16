@@ -1,7 +1,7 @@
 from typing import Iterable
 import numpy as np
 import time
-from tqdm import tqdm
+import tqdm
 
 from cs336_basics.tokenizer import Tokenizer
 
