@@ -115,7 +115,8 @@ class Tokenizer:
         into memory.
         """
         for line in iterable:
-            yield self.encode(line)
+            for token_id in self.encode(line):
+                yield token_id
 
     def decode(self, ids: list[int]) -> str:
         """
@@ -242,9 +243,13 @@ if __name__ == "__main__":
     print("Current Working Directory (os.getcwd()):", current_directory)
 
 
+    all_ids = []
     with open("tests/fixtures/tinystories_sample.txt", "r", encoding="utf-8") as f:
         for id in tokenizer.encode_iterable(f):
-            print(id)
+            all_ids.append(id)
+    print(all_ids)
+    print(len(all_ids))
+    print(tokenizer.decode(all_ids))
     #print(type(tokenizer.encode(orig_str)[0]))
     print("deco: ",tokenizer.decode(tokenizer.encode(orig_str)))
 
