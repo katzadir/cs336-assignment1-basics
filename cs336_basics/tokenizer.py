@@ -114,8 +114,8 @@ class Tokenizer:
         This is required for memoery-efficient tokenization of large files that we cannot directly load
         into memory.
         """
-        while iter in iterable:
-            yield self.encode(iter)
+        for line in iterable:
+            yield self.encode(line)
 
     def decode(self, ids: list[int]) -> str:
         """
@@ -235,10 +235,20 @@ if __name__ == "__main__":
     #print("orig-encoded: ",orig_str.encode("utf-8"))
     #print(type(tokenizer.encode(orig_str)))
     print("encoded: ",tokenizer.encode(orig_str), " len: ",len(tokenizer.encode(orig_str)))
+    
+    import os
+
+    current_directory = os.getcwd()
+    print("Current Working Directory (os.getcwd()):", current_directory)
+
+
+    with open("tests/fixtures/tinystories_sample.txt", "r", encoding="utf-8") as f:
+        for id in tokenizer.encode_iterable(f):
+            print(id)
     #print(type(tokenizer.encode(orig_str)[0]))
     print("deco: ",tokenizer.decode(tokenizer.encode(orig_str)))
 
-    reference_tokenizer = tiktoken.get_encoding("gpt2")
+    #reference_tokenizer = tiktoken.get_encoding("gpt2")
     #print("ref encoding:", reference_tokenizer.encode(orig_str))
 
     # print(tokenizer.decode(tokenizer.encode("")))
