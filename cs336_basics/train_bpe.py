@@ -65,7 +65,9 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
     merges = list()
     while len(vocab) < vocab_size:
         pre_tokens, pairs_stat, vocab, merges = bpe_merge(pre_tokens, pairs_stat, vocab, merges)
-        print("vocab:",len(vocab))
+        voc_l = len(vocab)
+        if voc_l % 100 == 0:
+            print("vocab:",len(vocab))
 
     return vocab, merges
 
