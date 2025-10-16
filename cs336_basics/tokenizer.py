@@ -22,7 +22,7 @@ class Tokenizer:
         # adding special_token to our vocabulary if not exists already
         if special_tokens is not None:
             for special_token in special_tokens:
-                self.vocav[len(self.vocav)] = re.escape(special_token).encode("utf-8")
+                self.vocav[len(self.vocav)] = special_token.encode("utf-8")
 
         # inverse vocabulary lookup 
         self.inv_vocab = {v : k for k, v in vocab.items()}
@@ -59,7 +59,7 @@ class Tokenizer:
             if not part:
                 continue
             if special_tokens is not None and part in special_tokens:
-                pre_tokens.append([re.escape(part).encode("utf-8")])
+                pre_tokens.append([part.encode("utf-8")])
                 continue
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
