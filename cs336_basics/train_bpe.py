@@ -1,6 +1,6 @@
 import regex as re
 
-def read_in_chunks(path, chunk_size=1000*1024*1024):  # 1 Gb
+def read_in_chunks(path, chunk_size=10*1024*1024):  # 10 Mb
     with open(path, "r", encoding="utf8") as f:
         while True:
             chunk = f.read(chunk_size)
@@ -33,13 +33,12 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
     pre_tokens = {}
     
     try:
-        for text in read_in_chunks(input_path):
-        #with open(input_path, "r", encoding="utf8") as file:
-        #    text = file.read()
+        with open(input_path, "r", encoding="utf8") as file:
+            text = file.read()
        
             split_pat = "(" + "|".join(re.escape(t) for t in special_tokens) + ")"
             parts = re.split(split_pat, text)
-            print("parts| ", len(parts))
+
             for part in parts:
                 if not part:
                     continue
@@ -49,13 +48,10 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
                     token_bytes = pretoken.group(0).encode("utf-8")
                     key = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
                     pre_tokens[key] = pre_tokens.get(key, 0) + 1
-            print("pre_tokens| ", len(pre_tokens))
+
 
     except Exception as e:
         print(f"An error occurred: {e}")
-    finally:
-        pass
-        #file.close()
 
         
     # compute byte-pair stat 
@@ -65,19 +61,17 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
         for x,y in zip(pre_token[:-1],pre_token[1:]):
             pairs_stat[(x,y)] = pairs_stat.get((x,y), 0) + pre_tokens[pre_token]
 
-    print("DEBUG:")
-    print(sorted(pairs_stat.items())[:3])
     # bpe merge
     merges = list()
     while len(vocab) < vocab_size:
         pre_tokens, pairs_stat, vocab, merges = bpe_merge(pre_tokens, pairs_stat, vocab, merges)
+        print("vocab:",len(vocab))
 
     return vocab, merges
 
 def bpe_merge(pre_tokens, pairs_stat, vocab, merges):
     
     # high-freq pair
-    print("bpe_merge| ", len(pairs_stat))
     merge_cand = max(pairs_stat, key=lambda k: (pairs_stat[k], k))
 
     # merge update
