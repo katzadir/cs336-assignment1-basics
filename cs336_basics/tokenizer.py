@@ -22,7 +22,8 @@ class Tokenizer:
         # adding special_token to our vocabulary if not exists already
         if special_tokens is not None:
             for special_token in special_tokens:
-                self.vocav[len(self.vocav)] = special_token.encode("utf-8")
+                if special_token not in self.vocav:
+                    self.vocav[len(self.vocav)] = special_token.encode("utf-8")
 
         # inverse vocabulary lookup 
         self.inv_vocab = {v : k for k, v in vocab.items()}
