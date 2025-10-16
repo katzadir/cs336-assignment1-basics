@@ -22,7 +22,7 @@ class Tokenizer:
         # adding special_token to our vocabulary if not exists already
         if special_tokens is not None:
             for special_token in special_tokens:
-                self.vocav[len(self.vocav)] = special_token
+                self.vocav[len(self.vocav)] = re.escape(special_token).encode("utf-8")
 
         # inverse vocabulary lookup 
         self.inv_vocab = {v : k for k, v in vocab.items()}
@@ -59,7 +59,8 @@ class Tokenizer:
             if not part:
                 continue
             if special_tokens is not None and part in special_tokens:
-                pre_tokens.append([part])
+                pre_tokens.append([re.escape(part).encode("utf-8")])
+                continue
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
                 pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
@@ -222,7 +223,7 @@ if __name__ == "__main__":
     MERGES_PATH = "tests/fixtures/gpt2_merges.txt"
     #tokenizer = Tokenizer.get_tokenizer()
 
-    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath)
+    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath, special_tokens=["<|endoftext|>"])
     #orig_str = "Hello, how are you?"
     orig_str = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
     #orig_str = "🙃"
@@ -233,8 +234,8 @@ if __name__ == "__main__":
     #print(type(tokenizer.encode(orig_str)[0]))
     print("deco: ",tokenizer.decode(tokenizer.encode(orig_str)))
 
-    reference_tokenizer = tiktoken.get_encoding("gpt2")
-    print("ref encoding:", reference_tokenizer.encode(orig_str))
+    #reference_tokenizer = tiktoken.get_encoding("gpt2")
+    #print("ref encoding:", reference_tokenizer.encode(orig_str))
 
     # print(tokenizer.decode(tokenizer.encode("")))
     # print(tokenizer.decode(tokenizer.encode("a")))
