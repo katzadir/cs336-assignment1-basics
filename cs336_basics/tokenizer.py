@@ -2,7 +2,6 @@ from collections.abc import Iterable
 import pickle
 import regex as re
 
-
 class Tokenizer:
 
     def __init__(self, vocab : dict[int, bytes], merges : list[tuple[bytes, bytes]], special_tokens : list[str] | None = None):
@@ -113,8 +112,11 @@ class Tokenizer:
         Decode a sequance of token IDs into text.
         """
 
-        str = [self.vocav.get(id, '\uFFFD').decode('utf-8',"replace") for id in ids]
-        return "".join(str)
+        str = [self.vocav.get(id, '\uFFFD') for id in ids]
+        str = b"".join(str)
+        return str.decode("utf-8","replace")
+        #return b'\xf0\x9f\x99\x83'.decode("utf-8")
+    
 
 
 
@@ -124,10 +126,14 @@ if __name__ == "__main__":
     # print("the <|endoftext|> are")
     # print(tokenizer.encode("the <|endoftext|> are"))
     # print(tokenizer.decode(tokenizer.encode("the <|endoftext|> are")))
+    merges_filepath="merges_v1.pkl"
+    vocab_filepath="vocab_v1.pkl"
+    VOCAB_PATH = "tests/fixtures/gpt2_vocab.json"
+    MERGES_PATH = "tests/fixtures/gpt2_merges.txt"
 
-    tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl")
+    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath)
     orig_str = "there can be only one."
-    orig_str = "🙃"
+    #orig_str = "🙃"
     print("orig: ",orig_str)
     print("orig-encoded: ",orig_str.encode("utf-8"))
     print(type(tokenizer.encode(orig_str)))
