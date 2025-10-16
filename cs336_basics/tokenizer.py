@@ -16,8 +16,6 @@ class Tokenizer:
         
         """
         self.vocav = vocab
-        # inverse vocabulary lookup 
-        self.inv_vocab = {v : k for k, v in vocab.items()}
         self.merges = merges
         self.special_tokens = special_tokens
 
@@ -25,6 +23,9 @@ class Tokenizer:
         if special_tokens is not None:
             for special_token in special_tokens:
                 self.vocav[len(self.vocav)] = special_token
+
+        # inverse vocabulary lookup 
+        self.inv_vocab = {v : k for k, v in vocab.items()}
 
     @classmethod
     def from_files(cls, vocab_filepath : str, merges_filepath : str, special_tokens : list[str] | None = None):
