@@ -17,13 +17,14 @@ class Tokenizer:
         """
         self.vocav = vocab
         self.merges = merges
-        self.special_tokens = special_tokens
+        self.special_tokens = sorted(special_tokens,reverse=True)
 
         # adding special_token to our vocabulary if not exists already
         if special_tokens is not None:
             for special_token in special_tokens:
                 if special_token not in self.vocav:
-                    self.vocav[len(self.vocav)-1] = special_token.encode("utf-8")
+                    print("last token: ", self.vocav[len(self.vocav)-1])
+                    self.vocav[len(self.vocav)] = special_token.encode("utf-8")
 
         # inverse vocabulary lookup 
         self.inv_vocab = {v : k for k, v in vocab.items()}
@@ -212,7 +213,7 @@ def gpt2_bytes_to_unicode() -> dict[int, str]:
 
 
 if __name__ == "__main__":
-    tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl", special_tokens=["<|endoftext|>"])
+    #tokenizer = Tokenizer.from_files(merges_filepath="merges_v1.pkl", vocab_filepath="vocab_v1.pkl", special_tokens=["<|endoftext|>"])
 
     # print("the <|endoftext|> are")
     # print(tokenizer.encode("the <|endoftext|> are"))
@@ -224,9 +225,9 @@ if __name__ == "__main__":
     MERGES_PATH = "tests/fixtures/gpt2_merges.txt"
     #tokenizer = Tokenizer.get_tokenizer()
 
-    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath, special_tokens=["<|endoftext|>"])
+    tokenizer = Tokenizer.from_files(merges_filepath=merges_filepath, vocab_filepath=vocab_filepath, special_tokens=["<|endoftext|>","<|endoftext|><|endoftext|>"],)
     #orig_str = "Hello, how are you?"
-    orig_str = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
+    orig_str = "Hello, how <|endoftext|><|endoftext|> are you?<|endoftext|>"
     #orig_str = "🙃"
     print("orig: ",orig_str)
     #print("orig-encoded: ",orig_str.encode("utf-8"))
