@@ -1,6 +1,4 @@
-from typing import Iterable
 import numpy as np
-import time
 import tqdm
 
 from cs336_basics.tokenizer import Tokenizer
@@ -13,7 +11,9 @@ owt_conf = {
     'special_tokens': ['<|endoftext|>']
 }
 
-tokenizer = Tokenizer.from_files(**owt_conf)
+tokenizer = Tokenizer.from_files(merges_filepath=owt_conf['merges_filepath'], 
+                                 vocab_filepath=owt_conf['vocab_filepath'],
+                                 special_tokens=owt_conf['special_tokens'])
 
 for split in ['train', 'val']:
     with open(owt_conf[split]) as f:
