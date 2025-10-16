@@ -23,7 +23,7 @@ class Tokenizer:
         if special_tokens is not None:
             for special_token in special_tokens:
                 if special_token not in self.vocav:
-                    self.vocav[len(self.vocav)] = special_token.encode("utf-8")
+                    self.vocav[len(self.vocav)+1] = special_token.encode("utf-8")
 
         # inverse vocabulary lookup 
         self.inv_vocab = {v : k for k, v in vocab.items()}
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     #print(type(tokenizer.encode(orig_str)[0]))
     print("deco: ",tokenizer.decode(tokenizer.encode(orig_str)))
 
-    #reference_tokenizer = tiktoken.get_encoding("gpt2")
+    reference_tokenizer = tiktoken.get_encoding("gpt2")
     #print("ref encoding:", reference_tokenizer.encode(orig_str))
 
     # print(tokenizer.decode(tokenizer.encode("")))
