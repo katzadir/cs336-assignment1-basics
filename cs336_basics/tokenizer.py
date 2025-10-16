@@ -58,7 +58,7 @@ class Tokenizer:
             if not part:
                 continue
             if special_tokens is not None and part in special_tokens:
-                continue
+                pre_tokens.append(part)
             for pretoken in re.finditer(PAT, part):
                 token_bytes = pretoken.group(0).encode("utf-8")
                 pre_token = tuple(token_bytes[i:i+1] for i in range(len(token_bytes)))
